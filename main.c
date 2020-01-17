@@ -59,6 +59,7 @@ int windowHeight;
 int k=0;
 int p=0;
 int pause=0;
+float animation_parametar;
 extern float brzina_mete;
 
 extern Lopta lopte[MAX_META];
@@ -129,7 +130,7 @@ void on_keyboard(unsigned char key, int x, int y)
         		animation_ongoing = 0;
         		cannon_ball_z = 0;
         		cannon_ball_y = 0;
-        		cannon_ball_x = 0;
+        		cannon_ball_x = animation_parametar;
 
         		brzinaZ = 0;
         		brzinaY = 0;
@@ -146,7 +147,6 @@ void on_keyboard(unsigned char key, int x, int y)
 				glutTimerFunc(17, on_timer1, 0);
 				glutPostRedisplay();
 			}
-			}
         	break;
         case 'p':
         case 'P':
@@ -155,9 +155,22 @@ void on_keyboard(unsigned char key, int x, int y)
 				pause=1;
 			}
 			break;
+		case 'a':
+		case 'A':
+			animation_parametar+=0.1;
+			if(!animation_ongoing)
+				cannon_ball_x=animation_parametar;
+			glutPostRedisplay();
+			break;
+		case 'd':
+		case 'D':
+			animation_parametar-=0.1;
+			if(!animation_ongoing)
+				cannon_ball_x=animation_parametar;
+			 glutPostRedisplay();
 
 	}
-
+}
 }
 void on_reshape(int width, int height)
 {
@@ -258,6 +271,7 @@ void draw_ball(float radius) {
 		}
 	if(ispaljena==0) {
 		glPushMatrix();
+		glTranslatef(animation_parametar,0,0);
 		glTranslatef(0,0,0);
         	glRotatef(cannon_movement_x, 1, 0, 0);
         	glRotatef(cannon_movement_y, 0, 1, 0);
@@ -295,7 +309,7 @@ void draw_cannon(float radius, float height){
 
 		//Rotacija za pomeranje topa
     	glPushMatrix();
-        glRotatef(cannon_movement_x, 1, 0, 0);
+		glTranslatef(animation_parametar,0,0);
         glRotatef(cannon_movement_y, 0, 1, 0);
         //Crtanje topa
         glBegin(GL_QUAD_STRIP);
@@ -366,13 +380,14 @@ void draw_tire(float r, float h)
     	glPopMatrix();
 }
 void on_motion(int x, int y){
-
-      double posY = y - windowHeight/2; // scaling [-height/2, height/2] -> [-45, 45]
+	  
+	  
+	  
       double posX = x - windowWidth/2; // scaling [-width/2, width/2] -> [30, -30]
       //using formula for scaling x from range [a, b] to range [c, d]
       // f(x) = (x-a) * ((d-c) / (b-a)) + c , where f(a) = c, f(b) = d;
 
-      cannon_movement_x = (posY+(windowHeight*1.0)/2)*(180/(1.0*windowHeight)) - 90;
+      cannon_movement_x = 0;
      
 
       cannon_movement_y = (posX+(windowWidth*1.0)/2)*(-120/(windowWidth*1.0)) + 60;
@@ -386,7 +401,7 @@ static void on_mouse(int button, int state, int x, int y) {
 		if( k==1){
 			animation_ongoing=1;
 			ispaljena=1;
-          	brzina = 0.05;
+          	brzina = 0.04;
           	brzinaZ = brzina * cos(cannon_movement_x * DEGTORAD) * cos(cannon_movement_y * DEGTORAD);
           	brzinaY = -brzina* sin(cannon_movement_x * DEGTORAD);
           	brzinaX = brzina * cos(cannon_movement_x * DEGTORAD) * sin(cannon_movement_y * DEGTORAD);
@@ -423,7 +438,7 @@ void on_timer(int value){
 							animation_ongoing = 0;
 							cannon_ball_z = 0;
 							cannon_ball_y = 0;
-							cannon_ball_x = 0;
+							cannon_ball_x = animation_parametar;
 		
 							brzinaZ = 0;
 							brzinaY = 0;
@@ -447,7 +462,7 @@ void on_timer(int value){
         	animation_ongoing = 0;
         	cannon_ball_z = 0;
         	cannon_ball_y = 0;
-        	cannon_ball_x = 0;
+        	cannon_ball_x = animation_parametar;
 
         	brzinaZ = 0;
         	brzinaY = 0;
@@ -456,12 +471,13 @@ void on_timer(int value){
 		i++;
 		poeni-=50;
 		}
-	if(poeni>1000 && poeni< 2000)
-		//ubrzavamo mete
-		brzina_mete=0.06;
-	if(poeni>2000)
-		//ubrzavamo mete
-		brzina_mete=0.07;
+		float poc_brz=0.05;
+		
+		for(int i=1000;i<2000;i++){
+			if(poeni>i){
+				brzina_mete=poc_brz*i/1000;
+			}
+		}
 
     	glutPostRedisplay();
 
