@@ -8,6 +8,7 @@
 
 typedef struct lopta {
     float x;
+    float x1;
     float z;
     float boja;
     int prosla;
@@ -21,5 +22,7 @@ void nacrtaj_loptu();
 void inicijalizacija_meta();
 void azuriraj_mete();
 void nacrtaj_mete();
+void iscrtaj_pozadinu();
+void initialize();
 
 #endif

@@ -4,14 +4,17 @@ CFLAGS  = -g -ansi -Wall -I/usr/X11R6/include -I/usr/pkg/include
 LDFLAGS = -L/usr/X11R6/lib -L/usr/pkg/lib
 LDLIBS  = -lglut -lGLU -lGL -lm -Wall
 
-$(PROGRAM): main.o mete.o 
+$(PROGRAM): main.o mete.o image.o
 	$(CC) $(LDFLAGS) -o $(PROGRAM) $^ $(LDLIBS)
 
 
-main.o: main.c mete.h
+main.o: main.c mete.h image.h
 	$(CC) $(LDFLAGS) -c -o $@ $< $(LDLIBS)
 
 mete.o: mete.c mete.h 
+	$(CC) $(LDFLAGS) -c -o $@ $< $(LDLIBS)
+
+image.o: image.c image.h
 	$(CC) $(LDFLAGS) -c -o $@ $< $(LDLIBS)
 
 

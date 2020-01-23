@@ -4,6 +4,8 @@
 #include <time.h>
 #include <stdio.h>
 #include <string.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
 #include "mete.h"
 #define EPSILON 0.05
 extern Lopta lopte[MAX_META];
@@ -26,6 +28,7 @@ void draw_circle(float r);
 void set_normal_and_vertex_tire(float u, float v, float r);
 void draw_tire(float r, float h);
 
+extern void initialize();
 
 void ispisi_tekst(char * tekst, int x, int y, float r, float g, float b, int sirina_ekrana, int duzina_ekrana);
 
@@ -37,6 +40,7 @@ float cannon_ball_x;
 float cannon_ball_y;
 float cannon_ball_z;
 
+extern GLuint wall_texture_name;
 
 int ispaljena;
 float brzina;
@@ -44,6 +48,7 @@ float brzinaY;
 float brzinaZ;
 float brzinaX;
 float slucajni[MAX_META];
+float slucajni1[MAX_META];
 
 float brzina;
 
@@ -60,6 +65,7 @@ int k=0;
 int p=0;
 int pause=0;
 float animation_parametar;
+float animation_parametar1=0;
 extern float brzina_mete;
 
 extern Lopta lopte[MAX_META];
@@ -97,18 +103,27 @@ int main(int argc, char **argv){
     	ispaljena=0;
     	animation_ongoing=0;
     	animation_ongoing1=0;
+	
+		glEnable(GL_NORMALIZE);
 
-
+	
+		initialize();  
 
     	windowWidth=1366;
     	windowHeight=768;
     	//Dodeljujemo random boje
     	for(i=0;i<MAX_META;i++) {
-		double random_broj = rand()/(float)RAND_MAX;
-		slucajni[i]=random_broj;
-		}
-	for(i=0;i<MAX_META;i++)
-		loptica_u_redu[i]= rand() % 6 +1;
+			double random_broj = rand()/(float)RAND_MAX;
+			slucajni[i]=random_broj;
+			}
+		//Dodeljujemo rendom mete
+		for(i=0;i<MAX_META;i++) {
+			double random_broj = rand()/(float)RAND_MAX;
+			slucajni1[i]=random_broj;
+			}
+		//Dodeljujemo random broj loptica u redu
+		for(i=0;i<MAX_META;i++)
+			loptica_u_redu[i]= rand() % 6 +1;
     	i=0;
     	inicijalizacija_meta();
 
@@ -123,10 +138,10 @@ void on_keyboard(unsigned char key, int x, int y)
     		case 27:
         		exit(0);
         		break;
-		case 'r':
-		case 'R':
-		//Resetovanje loptice
-			ispaljena=0;
+			case 'r':
+			case 'R':
+				//Resetovanje loptice
+				ispaljena=0;
         		animation_ongoing = 0;
         		cannon_ball_z = 0;
         		cannon_ball_y = 0;
@@ -135,42 +150,50 @@ void on_keyboard(unsigned char key, int x, int y)
         		brzinaZ = 0;
         		brzinaY = 0;
         		brzinaX = 0;
-			i++;
-			break;
-    	case 'g':
-		case 'G': 
-			k=1;
-			if (p==0) {
-			if (animation_ongoing1==0 ){
-				animation_ongoing1 = 1;
-				pause=0;
-				glutTimerFunc(17, on_timer1, 0);
+				i++;
+				break;
+			case 'g':
+			case 'G': 
+				//Pokretanje animacije
+				k=1;
+				if (p==0) {
+					if (animation_ongoing1==0 ){
+					animation_ongoing1 = 1;
+					pause=0;
+					glutTimerFunc(50, on_timer1, 0);
+					glutPostRedisplay();
+					}
+				break;
+			case 'p':
+			case 'P':
+				//Pauza
+				if(animation_ongoing1==1){
+					animation_ongoing1=0;
+					pause=1;
+					}
+				break;
+			case 'a':
+			case 'A':
+				//Pomeranje topa levo
+				if(animation_parametar<1.7){
+					animation_parametar+=0.1;
+				}
+				if(!animation_ongoing)
+					cannon_ball_x=animation_parametar;
 				glutPostRedisplay();
-			}
-        	break;
-        case 'p':
-        case 'P':
-			if(animation_ongoing1==1){
-				animation_ongoing1=0;
-				pause=1;
-			}
-			break;
-		case 'a':
-		case 'A':
-			animation_parametar+=0.1;
-			if(!animation_ongoing)
-				cannon_ball_x=animation_parametar;
-			glutPostRedisplay();
-			break;
-		case 'd':
-		case 'D':
-			animation_parametar-=0.1;
-			if(!animation_ongoing)
-				cannon_ball_x=animation_parametar;
-			 glutPostRedisplay();
-
+				break;
+			case 'd':
+			case 'D':
+				//Pomeranje topa desno
+				if(animation_parametar>-1.7){
+					animation_parametar-=0.1;
+				}
+				if(!animation_ongoing)
+					cannon_ball_x=animation_parametar;
+				glutPostRedisplay();
+				break;
+		}
 	}
-}
 }
 void on_reshape(int width, int height)
 {
@@ -184,7 +207,7 @@ void on_display(void)
 {
     	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
+		//Postavljanje kamere
     	glMatrixMode(GL_MODELVIEW);
     	glLoadIdentity();
     	gluLookAt(0,2, -1, 0, 1.1, 0, 0, 1, 0);
@@ -194,42 +217,53 @@ void on_display(void)
 
     	glEnable(GL_DEPTH_TEST);
     	draw_cannon(0.2,0.5);
-	draw_ball(0.19);
-	nacrtaj_mete();
+		draw_ball(0.19);
+		nacrtaj_mete();
 	
     	glDisable(GL_LIGHTING);
     	glDisable(GL_LIGHT0);
-	if(k==0) {
-		char str2[255];
-		char str3[255];
-		ispisi_tekst("Da pokrenete igricu stisnite G ",windowWidth/2  - strlen(str2) - 120,
+
+	glBindTexture(GL_TEXTURE_2D, wall_texture_name);
+        glPushMatrix();
+            glScalef(70, 70, 1);
+            glTranslatef(0, -0.2, 0);
+	    //glScalef(-1,1,1);
+            glTranslatef(0,0,10);
+            iscrtaj_pozadinu();
+        glPopMatrix();
+    	glBindTexture(GL_TEXTURE_2D, 0);
+    	
+		if(k==0) {
+			char str2[255];
+			char str3[255];
+			ispisi_tekst("Da pokrenete igricu stisnite G ",windowWidth/2  - strlen(str2) - 120,
 					 windowHeight/2+40,1,0,0,windowWidth,windowHeight);
-		ispisi_tekst("Da promenite boju loptice stisnite R",windowWidth/2 - strlen(str3) - 120,
+			ispisi_tekst("Da promenite boju loptice stisnite R",windowWidth/2 - strlen(str3) - 120,
 					 windowHeight/2-10,1,0,0,windowWidth,windowHeight);
 	
 		}
-	char str[255];
-   	sprintf(str, "Broj loptica: %d / 255", i);
-	ispisi_tekst(str,2,2,1,0,0,windowWidth,windowHeight);
-	char str1[255];
-   	sprintf(str1, "Broj poena: %d", poeni);
-	ispisi_tekst(str1,windowWidth - strlen(str1) - 210,2,1,0,0,windowWidth,windowHeight);
-	char str6[255];
-   	sprintf(str1, "Ostalo zivota: %d", ostalo_zivota);
-	ispisi_tekst(str1,windowWidth/2  - strlen(str6) - 120,2,1,0,0,windowWidth,windowHeight);
-	if(p==1) {
-		char str4[255];
-		char str5[255];
-		sprintf(str4, "Izgubili ste broj ostavarenih poena %d", poeni);
-		ispisi_tekst(str4,windowWidth/2  - strlen(str4) - 120,
-					 windowHeight/2+40,1,0,0,windowWidth,windowHeight);
-		ispisi_tekst("Da napustice igricu stisnite ESC",windowWidth/2 - strlen(str5) - 120,
-					 windowHeight/2-10,1,0,0,windowWidth,windowHeight);
-	}
-	if(pause==1){
+		char str[255];
+		sprintf(str, "Broj loptica: %d / 255", i);
+		ispisi_tekst(str,2,2,1,0,0,windowWidth,windowHeight);
+		char str1[255];
+		sprintf(str1, "Broj poena: %d", poeni);
+		ispisi_tekst(str1,windowWidth - strlen(str1) - 210,2,1,0,0,windowWidth,windowHeight);
+		char str6[255];
+		sprintf(str1, "Ostalo zivota: %d", ostalo_zivota);
+		ispisi_tekst(str1,windowWidth/2  - strlen(str6) - 120,2,1,0,0,windowWidth,windowHeight);
+		if(p==1) {
+			char str4[255];
+			char str5[255];
+			sprintf(str4, "Izgubili ste broj ostavarenih poena %d", poeni);
+			ispisi_tekst(str4,windowWidth/2  - strlen(str4) - 120,
+						 windowHeight/2+40,1,0,0,windowWidth,windowHeight);
+			ispisi_tekst("Da napustice igricu stisnite ESC",windowWidth/2 - strlen(str5) - 120,
+						 windowHeight/2-10,1,0,0,windowWidth,windowHeight);
+		}
+		if(pause==1){
 				ispisi_tekst("Pauzirali ste igricu",windowWidth/2 - strlen(str6) - 120,
-				 windowHeight/2-10,1,0,0,windowWidth,windowHeight);
-			 }
+							windowHeight/2-10,1,0,0,windowWidth,windowHeight);
+				 }
 		
 
 
@@ -250,41 +284,41 @@ void draw_ball(float radius) {
     	GLfloat specular_coeffs2[] = {  0.332741, 0.528634, 0.346435, 1 };
 
     	GLfloat shininess = 0.3*128;
-	if(slucajni[i]<0.3){
+    	//Biranje boje loptice
+		if(slucajni[i]<0.3){
 
-    		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient_coeffs);
-    		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_coeffs);
-    		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular_coeffs);
-    		glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
-		}
-	else if(slucajni[i]>=0.3 && slucajni[i]<0.6)  { 
-    		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient_coeffs1);
-    		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_coeffs1);
-    		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular_coeffs1);
-    	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
-		}
-	else {
-    	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient_coeffs2);
-    	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_coeffs2);
-    	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular_coeffs2);
-    	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
-		}
-	if(ispaljena==0) {
-		glPushMatrix();
-		glTranslatef(animation_parametar,0,0);
-		glTranslatef(0,0,0);
-        	glRotatef(cannon_movement_x, 1, 0, 0);
-        	glRotatef(cannon_movement_y, 0, 1, 0);
-		glTranslatef(0,0,0.5);
-		glutSolidSphere(radius,25,25);
-		glPopMatrix();
-		}
-	else if (ispaljena==1) {
-		glPushMatrix();
-        	glTranslatef(cannon_ball_x, cannon_ball_y, cannon_ball_z+0.5);
-        	glutSolidSphere(0.1, 100, 100);
-    		glPopMatrix();
-		}
+				glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient_coeffs);
+				glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_coeffs);
+				glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular_coeffs);
+				glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+			}
+		else if(slucajni[i]>=0.3 && slucajni[i]<0.6)  { 
+				glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient_coeffs1);
+				glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_coeffs1);
+				glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular_coeffs1);
+				glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+			}
+		else {
+				glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient_coeffs2);
+				glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_coeffs2);
+				glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular_coeffs2);
+				glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+			}
+		if(ispaljena==0) {
+				glPushMatrix();
+				glTranslatef(animation_parametar,0,0);
+				glTranslatef(0,0,0);
+				glRotatef(cannon_movement_y, 0, 1, 0);
+				glTranslatef(0,0,0.5);
+				glutSolidSphere(radius,25,25);
+				glPopMatrix();
+				}
+		else if (ispaljena==1) {
+				glPushMatrix();
+				glTranslatef(cannon_ball_x+cannon_movement_x, cannon_ball_y, cannon_ball_z+0.5);
+				glutSolidSphere(0.15, 100, 100);
+				glPopMatrix();
+			}
 	}
 void draw_cannon(float radius, float height){
     	GLfloat ambient_coeffs[] = { 0.05375, 0.05, 0.06625, 1 };
@@ -315,11 +349,11 @@ void draw_cannon(float radius, float height){
         glBegin(GL_QUAD_STRIP);
         while(angle < 2*M_PI){
        		x = radius*cos(angle);
-                y = radius*sin(angle);
-                glNormal3f(x / radius, y / radius, 0.0); 
-                glVertex3f(x, y, height);
-                glVertex3f(x, y, 0.0); 
-                angle += angle_step; 
+            y = radius*sin(angle);
+            glNormal3f(x / radius, y / radius, 0.0); 
+            glVertex3f(x, y, height);
+            glVertex3f(x, y, 0.0); 
+            angle += angle_step; 
             }
        	glVertex3f(radius, 0.0, height);
         glVertex3f(radius, 0.0, 0.0);
@@ -387,11 +421,12 @@ void on_motion(int x, int y){
       //using formula for scaling x from range [a, b] to range [c, d]
       // f(x) = (x-a) * ((d-c) / (b-a)) + c , where f(a) = c, f(b) = d;
 
-      cannon_movement_x = 0;
      
 
       cannon_movement_y = (posX+(windowWidth*1.0)/2)*(-120/(windowWidth*1.0)) + 60;
-
+      if (ispaljena==0){
+		cannon_movement_x=cannon_movement_y/60/2;
+	}
       glutPostRedisplay();
 
 }
@@ -406,7 +441,7 @@ static void on_mouse(int button, int state, int x, int y) {
           	brzinaY = -brzina* sin(cannon_movement_x * DEGTORAD);
           	brzinaX = brzina * cos(cannon_movement_x * DEGTORAD) * sin(cannon_movement_y * DEGTORAD);
 
-          	glutTimerFunc(15, on_timer, 0);
+          	glutTimerFunc(50, on_timer, 0);
           	glutPostRedisplay();
 		}
 	}
@@ -429,8 +464,6 @@ void on_timer(int value){
             		if(cannon_ball_z  <= lopte[j].z + 0.2
                 		&& cannon_ball_z >= lopte[j].z - 0.2
 
-                		&& cannon_ball_y <= 0 + 0.2
-                		&& cannon_ball_y >= 0 - 0.2
 
 		                && cannon_ball_x >= lopte[j].x - 2*0.2
                 		&& cannon_ball_x <= lopte[j].x + (loptica_u_redu[j]+1)*0.2){
@@ -451,14 +484,14 @@ void on_timer(int value){
 				poeni+=loptica_u_redu[i]*100;
 			}
 			else  poeni-=50;
-				i++;				
+			i++;				
 				}
 			}
 	}
 		}
     	else {	
-	//vracanje loptice u top
-		ispaljena=0;
+			//vracanje loptice u top
+			ispaljena=0;
         	animation_ongoing = 0;
         	cannon_ball_z = 0;
         	cannon_ball_y = 0;
@@ -467,9 +500,9 @@ void on_timer(int value){
         	brzinaZ = 0;
         	brzinaY = 0;
         	brzinaX = 0;
-		//povecanje brojaca da bi se manjala boja loptice
-		i++;
-		poeni-=50;
+			//povecanje brojaca da bi se manjala boja loptice
+			i++;
+			poeni-=50;
 		}
 		float poc_brz=0.05;
 		
@@ -482,7 +515,7 @@ void on_timer(int value){
     	glutPostRedisplay();
 
     if(animation_ongoing) {
-       	glutTimerFunc(15, on_timer, 0);
+       	glutTimerFunc(50, on_timer, 0);
    	}
 }
 
@@ -490,47 +523,48 @@ void on_timer1(int value){
     	if(value != 0)
         	return ;
     	azuriraj_mete();
+    	animation_parametar1+=0.1;
     	glutTimerFunc(15, on_timer, 0);
-	for(int j=0;j<MAX_META;j++) {
-		if(lopte[j].z<0  && lopte[j].prosla==0){
-			//Kada loptica prodje pored topa gubimo 1 zivot
-			lopte[j].prosla=1;
-			ostalo_zivota-=1;
+		for(int j=0;j<MAX_META;j++) {
+			if(lopte[j].z<0  && lopte[j].prosla==0){
+				//Kada loptica prodje pored topa gubimo 1 zivot
+				lopte[j].prosla=1;
+				ostalo_zivota-=1;
+				}
+			if(ostalo_zivota==0){
+				//Ako smo izgubili sve zivote zavrsava se igrica
+				p=1;
+				animation_ongoing1=0;
 			}
-		if(ostalo_zivota==0){
-			//Ako smo izgubili sve zivote zavrsava se igrica
-			p=1;
-			animation_ongoing1=0;
 		}
-	}
-	if(animation_ongoing1)
-		glutTimerFunc(15, on_timer1, 0);
-	}
+		if(animation_ongoing1)
+			glutTimerFunc(55, on_timer1, 0);
+		}
 void ispisi_tekst(char * tekst, int x, int y, float r, float g, float b, int sirina_ekrana, int duzina_ekrana)
 {
-	glDisable(GL_LIGHTING);
+		glDisable(GL_LIGHTING);
 
-        glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-        glLoadIdentity();
+		glMatrixMode(GL_MODELVIEW);
+		glPushMatrix();
+		glLoadIdentity();
 
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
 
-	glColor4f(r, g, b, 1.0 );
-	glOrtho(0, sirina_ekrana, 0, duzina_ekrana, -1, 1);
-	
-	glRasterPos2f(x, y);
+		glColor4f(r, g, b, 1.0 );
+		glOrtho(0, sirina_ekrana, 0, duzina_ekrana, -1, 1);
+		
+		glRasterPos2f(x, y);
 
-	int len= strlen(tekst);
-	for (int i = 0; i < len; i++) {
-		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, tekst[i]);
-		}
+		int len= strlen(tekst);
+		for (int i = 0; i < len; i++) {
+			glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, tekst[i]);
+			}
 
-	glMatrixMode(GL_MODELVIEW);
-	glPopMatrix();
+		glMatrixMode(GL_MODELVIEW);
+		glPopMatrix();
 
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-}
+		glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+	}
