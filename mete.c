@@ -12,6 +12,7 @@ const float korak_mete = 2;
 float brzina_mete = 0.04;
 Lopta lopte[MAX_META];
 extern float slucajni1[MAX_META];
+float rotacija=0;
 
 GLuint wall_texture_name;
 
@@ -45,6 +46,7 @@ void azuriraj_mete() {
 					lopte[i].z -= brzina_mete;
 				}
 				lopte[i].x=lopte[i].x1+sin(animation_parametar1);
+				rotacija+=0.05;
       
     	}
 }
@@ -94,6 +96,7 @@ void nacrtaj_mete() {
 				if (lopte[i].sudar==0){
        			glPushMatrix();
             		glTranslatef(lopte[i].x+ j*0.3, 0,lopte[i].z );
+            		glRotatef(rotacija,1,1,1);
             		if(slucajni1[i]<0.3)
             		glutSolidSphere(0.15, 25, 25);
             		else if (slucajni1[i]>=0.3 && slucajni1[i]<0.6)
@@ -109,6 +112,7 @@ void nacrtaj_mete() {
 			else if (lopte[i].sudar==1){
 				glPushMatrix();
             		glTranslatef(lopte[i].x+ j*0.3, 0,lopte[i].z );
+            		glRotatef(rotacija,1,1,1);
             		if(slucajni1[i]<0.3)
             		glutSolidSphere(lopte[i].parametar*0.15, 25, 25);
             		else if (slucajni1[i]>=0.3 && slucajni1[i]<0.6)
