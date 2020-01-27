@@ -18,5 +18,5 @@ Igrica se pokrece na<kbd>G</kbd> <br>
 Top se pomera pomeranjem misa a loptica se ispaljuje na levi klik<br>
 Top se poera levo na <kbd>A</kbd> i desno na <kbd>D</kbd> <br>
 Boja loptice u topu se menja na <kbd>K</kbd> <br>
-Igrica se pauzira na <kbd>P<kdb>
+Igrica se pauzira na <kbd>P<kdb> <br>
 Na <kbd>ESC</kbd> se izlazi iz igrice 
